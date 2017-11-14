@@ -31,7 +31,7 @@ def layer(op):
 
 class Network(object):
 
-    def __init__(self, inputs, trainable=True):
+    def __init__(self, inputs, trainable=True, reuse=None):
         # The input nodes for this network
         self.inputs = inputs
         # The current list of terminal nodes
@@ -44,6 +44,7 @@ class Network(object):
         self.use_dropout = tf.placeholder_with_default(tf.constant(1.0),
                                                        shape=[],
                                                        name='use_dropout')
+        self.reuse = reuse
         self.setup()
 
     def setup(self):
@@ -123,18 +124,18 @@ class Network(object):
         assert c_o % group == 0
         # Convolution for a given input and kernel
         convolve = lambda i, k: tf.nn.conv2d(i, k, [1, s_h, s_w, 1], padding=padding)
-        with tf.variable_scope(name) as scope:
+        with tf.variable_scope(name, reuse=self.reuse) as scope:
             kernel = self.make_var('weights', shape=[k_h, k_w, c_i / group, c_o])
             if group == 1:
                 # This is the common-case. Convolve the input without any further complications.
                 output = convolve(input, kernel)
             else:
                 # Split the input into groups and then convolve each of them independently
-                input_groups = tf.split(3, group, input)
-                kernel_groups = tf.split(3, group, kernel)
+                input_groups = tf.split(axis=3, num_or_size_splits=group, value=input)
+                kernel_groups = tf.split(axis=3, num_or_size_splits=group, value=kernel)
                 output_groups = [convolve(i, k) for i, k in zip(input_groups, kernel_groups)]
                 # Concatenate the groups
-                output = tf.concat(3, output_groups)
+                output = tf.concat(axis=3, values=output_groups)
             # Add the biases
             if biased:
                 biases = self.make_var('biases', [c_o])
@@ -177,7 +178,7 @@ class Network(object):
 
     @layer
     def concat(self, inputs, axis, name):
-        return tf.concat(concat_dim=axis, values=inputs, name=name)
+        return tf.concat(axis=axis, values=inputs, name=name)
 
     @layer
     def add(self, inputs, name):
@@ -185,7 +186,7 @@ class Network(object):
 
     @layer
     def fc(self, input, num_out, name, relu=True):
-        with tf.variable_scope(name) as scope:
+        with tf.variable_scope(name, reuse=self.reuse) as scope:
             input_shape = input.get_shape()
             if input_shape.ndims == 4:
                 # The input is spatial. Vectorize it first.
@@ -217,7 +218,7 @@ class Network(object):
     @layer
     def batch_normalization(self, input, name, scale_offset=True, relu=False):
         # NOTE: Currently, only inference is supported
-        with tf.variable_scope(name) as scope:
+        with tf.variable_scope(name, reuse=self.reuse) as scope:
             shape = [input.get_shape()[-1]]
             if scale_offset:
                 scale = self.make_var('scale', shape=shape)
@@ -242,3 +243,4 @@ class Network(object):
     def dropout(self, input, keep_prob, name):
         keep = 1 - self.use_dropout + (self.use_dropout * keep_prob)
         return tf.nn.dropout(input, keep, name=name)
+
