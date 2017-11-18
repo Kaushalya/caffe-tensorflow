@@ -9,6 +9,7 @@ from googlenet import GoogleNet
 from vgg import VGG16
 from alexnet import AlexNet
 from caffenet import CaffeNet
+from squeezenet_v1_1 import Squeezenet
 from nin import NiN
 from resnet import ResNet50, ResNet101, ResNet152
 
@@ -53,7 +54,8 @@ def std_spec(batch_size, isotropic=True):
     return DataSpec(batch_size=batch_size, scale_size=256, crop_size=224, isotropic=isotropic)
 
 # Collection of sample auto-generated models
-MODELS = (AlexNet, CaffeNet, GoogleNet, NiN, ResNet50, ResNet101, ResNet152, VGG16)
+MODELS = (AlexNet, CaffeNet, Squeezenet, GoogleNet,
+          NiN, ResNet50, ResNet101, ResNet152, VGG16)
 
 # The corresponding data specifications for the sample models
 # These specifications are based on how the models were trained.
@@ -61,6 +63,7 @@ MODELS = (AlexNet, CaffeNet, GoogleNet, NiN, ResNet50, ResNet101, ResNet152, VGG
 MODEL_DATA_SPECS = {
     AlexNet: alexnet_spec(),
     CaffeNet: alexnet_spec(),
+    Squeezenet: alexnet_spec(),
     GoogleNet: std_spec(batch_size=200, isotropic=False),
     ResNet50: std_spec(batch_size=25),
     ResNet101: std_spec(batch_size=25),
